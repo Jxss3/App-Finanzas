@@ -1012,8 +1012,8 @@
     if (s) s.classList.add("hide");
   }, 1000);
 
-  // ---------- Service Worker (PWA) ----------
-  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  // ---------- Service Worker (solo PWA, no en la app nativa) ----------
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http") && typeof window.Capacitor === "undefined") {
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("sw.js").catch(() => {});
     });
