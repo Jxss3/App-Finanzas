@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#4f6ef7" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Finanzas" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" type="image/png" href="icon-192.png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<title>Finanzas por Quincena — Registro de Gastos e Ingresos</title>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --surface: #ffffff;
+    --surface-2: #eef1f7;
+    --text: #1a2233;
+    --text-muted: #6b7280;
+    --border: #e3e7ef;
+    --primary: #4f6ef7;
+    --primary-hover: #3d5bf0;
+    --primary-soft: #e8edfe;
+    --ingreso: #16a34a;
+    --ingreso-soft: #e7f7ec;
+    --gasto: #e11d48;
+    --gasto-soft: #fde8ee;
+    --shadow: 0 10px 30px rgba(20, 40, 80, 0.08);
+    --shadow-sm: 0 2px 8px rgba(20, 40, 80, 0.06);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  [data-theme="dark"] {
+    --bg: #0f1420;
+    --surface: #171e2e;
+    --surface-2: #1f2839;
+    --text: #eef2f8;
+    --text-muted: #9aa5b5;
+    --border: #2a3346;
+    --primary: #6b84ff;
+    --primary-hover: #5a74f5;
+    --primary-soft: #232c44;
+    --ingreso: #34d399;
+    --ingreso-soft: #0e2b22;
+    --gasto: #fb7185;
+    --gasto-soft: #33151d;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { max-width: 100%; overflow-x: clip; }
+
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button, input, select { touch-action: manipulation; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: calc(20px + env(safe-area-inset-top)) 20px calc(80px + env(safe-area-inset-bottom)); }
+
+  /* Header */
+  header.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .brand .logo {
+    width: 42px; height: 42px; flex-shrink: 0;
+    display: grid; place-items: center;
+    filter: drop-shadow(0 4px 8px rgba(79, 110, 247, 0.35));
+  }
+  .brand .logo svg { width: 100%; height: 100%; display: block; }
+  .brand h1 { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.3px; white-space: nowrap; }
+  .brand p { font-size: 0.78rem; color: var(--text-muted); }
+  .topbar-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+  /* Pantalla de carga (splash) */
+  .splash {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    background: linear-gradient(135deg, #4f6ef7 0%, #6d5df7 55%, #8b5cf6 100%);
+    color: #fff; text-align: center; padding: 24px;
+    transition: opacity .55s ease, visibility .55s ease;
+  }
+  .splash.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+  .splash-logo { width: 104px; height: 104px; animation: splashPop .7s cubic-bezier(.2,.8,.2,1) both; }
+  .splash-logo svg { width: 100%; height: 100%; }
+  .splash-name { font-size: 1.35rem; font-weight: 800; letter-spacing: .2px; animation: splashFade .7s .12s ease both; }
+  .splash-tag { font-size: 0.9rem; opacity: .85; animation: splashFade .7s .24s ease both; }
+  @keyframes splashPop {
+    from { transform: scale(.55); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  @keyframes splashFade {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  /* Botones */
+  button {
+    font-family: inherit; cursor: pointer; border: none; font-size: 0.9rem;
+    border-radius: var(--radius-sm); padding: 9px 14px; font-weight: 600;
+    transition: background .15s, transform .05s, box-shadow .15s, color .15s;
+  }
+  button:active { transform: scale(0.97); }
+  .btn-icon {
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-icon:hover { background: var(--surface-2); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); box-shadow: var(--shadow-sm); }
+  .btn-ghost { background: transparent; color: var(--text-muted); }
+  .btn-ghost:hover { color: var(--text); background: var(--surface-2); }
+
+  /* Navegación de quincena */
+  .month-nav {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 12px; margin-bottom: 22px;
+    box-shadow: var(--shadow-sm);
+  }
+  .month-nav .arrow {
+    width: 40px; height: 40px; border-radius: 50%; background: transparent;
+    border: 1px solid var(--border); color: var(--text);
+    display: grid; place-items: center; font-size: 22px; line-height: 1;
+    flex-shrink: 0; transition: background .15s, border-color .15s, color .15s;
+  }
+  .month-nav .arrow:hover { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+  .periodo { flex: 1; min-width: 0; text-align: center; display: flex; flex-direction: column; gap: 2px; line-height: 1.25; }
+  .periodo-nombre { font-size: 1.05rem; font-weight: 800; letter-spacing: -0.2px; }
+  .periodo-rango { font-size: 0.76rem; color: var(--text-muted); }
+
+  /* Tarjetas de resumen */
+  .summary {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 22px;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-sm);
+  }
+  .card .label { font-size: 0.82rem; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .card .value { font-size: 1.7rem; font-weight: 800; margin-top: 6px; letter-spacing: -0.5px; }
+  .card .sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+  .card.ingresos .value { color: var(--ingreso); }
+  .card.gastos .value { color: var(--gasto); }
+  .card.balance .value { color: var(--text); }
+  .card.balance.positivo .value { color: var(--ingreso); }
+  .card.balance.negativo .value { color: var(--gasto); }
+
+  /* Presupuesto */
+  .budget { margin-bottom: 22px; }
+  .budget .card { padding: 16px 20px; }
+  .budget-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+  .budget-head .title { font-weight: 700; font-size: 0.95rem; }
+  .budget-head .meta { font-size: 0.8rem; color: var(--text-muted); }
+  .bar { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+  .bar .fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--ingreso), #22c55e); transition: width .3s, background .3s; }
+  .bar .fill.warn { background: linear-gradient(90deg, #f59e0b, #f97316); }
+  .bar .fill.over { background: linear-gradient(90deg, #ef4444, var(--gasto)); }
+
+  /* Layout principal */
+  .layout { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 18px 20px; }
+  .panel h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+  /* Formulario */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); }
+  input, select {
+    font-family: inherit; font-size: 0.92rem; color: var(--text);
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 10px 12px; width: 100%;
+    transition: border .15s, box-shadow .15s;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--surface-2); padding: 4px; border-radius: var(--radius-sm); }
+  .seg button { background: transparent; color: var(--text-muted); padding: 9px; border-radius: 8px; }
+  .seg button.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+  .seg button.active.ingreso { color: var(--ingreso); }
+  .seg button.active.gasto { color: var(--gasto); }
+
+  /* Gráfico */
+  .chart-wrap { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .donut { position: relative; width: 140px; height: 140px; flex-shrink: 0; }
+  .donut svg { transform: rotate(-90deg); }
+  .donut .center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .donut .center .t { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
+  .donut .center .v { font-size: 1.05rem; font-weight: 800; }
+  .legend { flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+  .legend-item .dot { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
+  .legend-item .name { flex: 1; }
+  .legend-item .amt { font-weight: 700; }
+  .legend-item .pct { color: var(--text-muted); font-size: 0.75rem; width: 40px; text-align: right; }
+  .empty-note { color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 12px 0; }
+
+  /* Lista de transacciones */
+  .list-tools { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .list-tools input, .list-tools select { width: auto; flex: 1; min-width: 120px; }
+  .filter-seg { display: flex; background: var(--surface-2); padding: 3px; border-radius: var(--radius-sm); }
+  .filter-seg button { background: transparent; color: var(--text-muted); padding: 7px 12px; font-size: 0.8rem; }
+  .filter-seg button.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+
+  .txn { display: flex; align-items: center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--border); }
+  .txn:last-child { border-bottom: none; }
+  .txn .icon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+  .txn.ingreso .icon { background: var(--ingreso-soft); }
+  .txn.gasto .icon { background: var(--gasto-soft); }
+  .txn .info { flex: 1; min-width: 0; }
+  .txn .info .desc { font-weight: 600; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .txn .info .meta { font-size: 0.76rem; color: var(--text-muted); }
+  .txn .amount { font-weight: 800; font-size: 0.98rem; white-space: nowrap; }
+  .txn.ingreso .amount { color: var(--ingreso); }
+  .txn.gasto .amount { color: var(--gasto); }
+  .txn .actions { display: flex; gap: 4px; }
+  .txn .actions button { background: transparent; color: var(--text-muted); padding: 6px; font-size: 15px; border-radius: 8px; }
+  .txn .actions button:hover { background: var(--surface-2); color: var(--text); }
+  .txn .actions button.del:hover { color: var(--gasto); background: var(--gasto-soft); }
+  .list-empty { text-align: center; color: var(--text-muted); padding: 28px 0; font-size: 0.9rem; }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(10, 15, 30, 0.55);
+    display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+    backdrop-filter: blur(3px);
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 460px;
+    padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border);
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal h3 { margin-bottom: 18px; font-size: 1.1rem; }
+  .modal .form-grid { gap: 14px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--text); color: var(--bg); padding: 12px 20px; border-radius: 12px;
+    font-size: 0.9rem; font-weight: 600; opacity: 0; transition: all .3s; z-index: 60;
+    box-shadow: var(--shadow);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 640px) {
+    .summary { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .container { padding: calc(14px + env(safe-area-inset-top)) 12px calc(80px + env(safe-area-inset-bottom)); }
+    header.topbar { flex-wrap: wrap; row-gap: 10px; }
+    .brand h1 { font-size: 1.05rem; }
+    .brand p { display: none; }
+    .topbar-actions { width: 100%; justify-content: flex-end; }
+    .hide-m { display: none; }
+    .btn-icon { padding: 8px 10px; }
+    input, select { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="splash" id="splash">
+  <div class="splash-logo">
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="26" fill="rgba(255,255,255,0.16)"/>
+      <text x="32" y="33" text-anchor="middle" dominant-baseline="central" font-family="Segoe UI, Arial, sans-serif" font-size="40" font-weight="700" fill="#ffffff">$</text>
+    </svg>
+  </div>
+  <div class="splash-name">Finanzas por Quincena</div>
+  <div class="splash-tag">Tus gastos e ingresos, en orden</div>
+</div>
+<div class="container">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="lgLogo" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#4f6ef7"/>
+              <stop offset="1" stop-color="#8b5cf6"/>
+            </linearGradient>
+          </defs>
+          <rect width="64" height="64" rx="15" fill="url(#lgLogo)"/>
+          <text x="32" y="33" text-anchor="middle" dominant-baseline="central" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700" fill="#ffffff">$</text>
+        </svg>
+      </div>
+      <div>
+        <h1>Finanzas por Quincena</h1>
+        <p>Registro de gastos e ingresos por quincena</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-icon" id="btnToday" title="Ir a la quincena actual">Hoy</button>
+      <button class="btn-icon" id="btnExport" title="Exportar datos">📤 <span class="hide-m">Exportar</span></button>
+      <button class="btn-icon" id="btnImport" title="Importar datos">📥 <span class="hide-m">Importar</span></button>
+      <button class="btn-icon" id="btnSettings" title="Configuración">⚙️</button>
+      <button class="btn-icon" id="btnTheme" title="Cambiar tema">🌙</button>
+    </div>
+  </header>
+
+  <div class="month-nav">
+    <button class="arrow" id="prevMonth" aria-label="Quincena anterior">‹</button>
+    <div class="periodo">
+      <span class="periodo-nombre" id="periodoNombre"></span>
+      <span class="periodo-rango" id="periodoRango"></span>
+    </div>
+    <button class="arrow" id="nextMonth" aria-label="Quincena siguiente">›</button>
+  </div>
+
+  <div class="summary">
+    <div class="card ingresos">
+      <div class="label">⬆️ Ingresos de la quincena</div>
+      <div class="value" id="sumIngresos">$0</div>
+      <div class="sub" id="subIngresos"></div>
+    </div>
+    <div class="card gastos">
+      <div class="label">⬇️ Gastos de la quincena</div>
+      <div class="value" id="sumGastos">$0</div>
+      <div class="sub" id="subGastos"></div>
+    </div>
+    <div class="card balance" id="cardBalance">
+      <div class="label">⚖️ Balance de la quincena</div>
+      <div class="value" id="sumBalance">$0</div>
+      <div class="sub" id="subBalance"></div>
+    </div>
+  </div>
+
+  <div class="budget" id="budgetCard">
+    <div class="card">
+      <div class="budget-head">
+        <span class="title">🎯 Presupuesto por quincena</span>
+        <span class="meta" id="budgetMeta"></span>
+      </div>
+      <div class="bar"><div class="fill" id="budgetFill"></div></div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="left">
+      <div class="panel">
+        <h2>➕ Añadir movimiento</h2>
+        <form id="txnForm" autocomplete="off">
+          <div class="form-grid">
+            <div class="field full">
+              <div class="seg" id="typeSeg">
+                <button type="button" class="active gasto" data-tipo="gasto">Gasto</button>
+                <button type="button" class="ingreso" data-tipo="ingreso">Ingreso</button>
+              </div>
+            </div>
+            <div class="field full">
+              <label for="fDesc">Descripción</label>
+              <input type="text" id="fDesc" placeholder="Ej. Compra del supermercado" required />
+            </div>
+            <div class="field">
+              <label for="fMonto">Monto</label>
+              <input type="number" id="fMonto" placeholder="0.00" min="0.01" step="0.01" required />
+            </div>
+            <div class="field">
+              <label for="fCat">Categoría</label>
+              <select id="fCat"></select>
+            </div>
+            <div class="field full">
+              <label for="fFecha">Fecha</label>
+              <input type="date" id="fFecha" required />
+            </div>
+            <div class="field full">
+              <button type="submit" class="btn-primary" id="btnSubmit" style="width:100%">Guardar movimiento</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h2>📋 Movimientos</h2>
+        <div class="list-tools">
+          <div class="filter-seg" id="filterSeg">
+            <button type="button" class="active" data-filtro="todos">Todos</button>
+            <button type="button" data-filtro="ingreso">Ingresos</button>
+            <button type="button" data-filtro="gasto">Gastos</button>
+          </div>
+          <input type="text" id="searchInput" placeholder="🔍 Buscar..." />
+        </div>
+        <div id="txnList"></div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="panel">
+        <h2>📊 Gastos por categoría</h2>
+        <div id="chartArea"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".json" class="hidden" />
+
+<!-- Modal editar -->
+<div class="modal-backdrop" id="editModal">
+  <div class="modal">
+    <h3>✏️ Editar movimiento</h3>
+    <form id="editForm" autocomplete="off">
+      <div class="form-grid">
+        <div class="field full">
+          <div class="seg" id="editTypeSeg">
+            <button type="button" class="gasto" data-tipo="gasto">Gasto</button>
+            <button type="button" class="ingreso" data-tipo="ingreso">Ingreso</button>
+          </div>
+        </div>
+        <div class="field full">
+          <label for="eDesc">Descripción</label>
+          <input type="text" id="eDesc" required />
+        </div>
+        <div class="field">
+          <label for="eMonto">Monto</label>
+          <input type="number" id="eMonto" min="0.01" step="0.01" required />
+        </div>
+        <div class="field">
+          <label for="eCat">Categoría</label>
+          <select id="eCat"></select>
+        </div>
+        <div class="field full">
+          <label for="eFecha">Fecha</label>
+          <input type="date" id="eFecha" required />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="btnCancelEdit">Cancelar</button>
+        <button type="submit" class="btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal configuración -->
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal">
+    <h3>⚙️ Configuración</h3>
+    <div class="form-grid" style="gap:14px">
+      <div class="field">
+        <label for="setCurrency">Moneda</label>
+        <select id="setCurrency">
+          <option value="USD">USD ($)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="MXN">MXN ($)</option>
+          <option value="COP">COP ($)</option>
+          <option value="ARS">ARS ($)</option>
+          <option value="CLP">CLP ($)</option>
+          <option value="PEN">PEN (S/)</option>
+          <option value="GTQ">GTQ (Q)</option>
+          <option value="BOB">BOB (Bs)</option>
+          <option value="PYG">PYG (₲)</option>
+          <option value="UYU">UYU ($U)</option>
+          <option value="VES">VES (Bs.)</option>
+          <option value="NIO">NIO (C$)</option>
+          <option value="CRC">CRC (₡)</option>
+          <option value="PAB">PAB (B/.)</option>
+          <option value="DOP">DOP (RD$)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="setBudget">Presupuesto por quincena (0 = sin límite)</label>
+        <input type="number" id="setBudget" min="0" step="0.01" placeholder="0" />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btnClearAll" style="color:var(--gasto)">🗑️ Borrar todo</button>
+      <button class="btn-ghost" id="btnCloseSettings">Cerrar</button>
+      <button class="btn-primary" id="btnSaveSettings">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Categorías ----------
+  const CATEGORIAS = {
+    gasto: ["Alimentación", "Transporte", "Vivienda", "Servicios", "Salud", "Educación", "Entretenimiento", "Ropa", "Regalos", "Otros"],
+    ingreso: ["Salario", "Freelance", "Negocio", "Inversiones", "Regalos", "Otros"]
+  };
+  const EMOJIS = {
+    "Alimentación": "🍔", "Transporte": "🚗", "Vivienda": "🏠", "Servicios": "💡",
+    "Salud": "🏥", "Educación": "📚", "Entretenimiento": "🎬", "Ropa": "👕",
+    "Regalos": "🎁", "Otros": "📦", "Salario": "💼", "Freelance": "🧑‍💻",
+    "Negocio": "🏪", "Inversiones": "📈"
+  };
+  const COLORS = ["#4f6ef7", "#22c55e", "#f59e0b", "#e11d48", "#8b5cf6", "#06b6d4", "#f97316", "#ec4899", "#84cc16", "#64748b"];
+
+  const CURRENCIES = {
+    USD: { locale: "en-US", code: "USD" },
+    EUR: { locale: "de-DE", code: "EUR" },
+    MXN: { locale: "es-MX", code: "MXN" },
+    COP: { locale: "es-CO", code: "COP" },
+    ARS: { locale: "es-AR", code: "ARS" },
+    CLP: { locale: "es-CL", code: "CLP" },
+    PEN: { locale: "es-PE", code: "PEN" },
+    GTQ: { locale: "es-GT", code: "GTQ" },
+    BOB: { locale: "es-BO", code: "BOB" },
+    PYG: { locale: "es-PY", code: "PYG" },
+    UYU: { locale: "es-UY", code: "UYU" },
+    VES: { locale: "es-VE", code: "VES" },
+    NIO: { locale: "es-NI", code: "NIO" },
+    CRC: { locale: "es-CR", code: "CRC" },
+    PAB: { locale: "es-PA", code: "PAB" },
+    DOP: { locale: "es-DO", code: "DOP" }
+  };
+
+  // ---------- Estado ----------
+  let transacciones = [];
+  let settings = { currency: "USD", budget: 0, theme: "light" };
+  let periodo = { anio: 0, mes: 0, quincena: 1 }; // { anio, mes(0-11), quincena(1|2) }
+  let tipoSeleccionado = "gasto";
+  let editTipo = "gasto";
+  let editId = null;
+  let filtro = "todos";
+  let busqueda = "";
+
+  // ---------- Utilidades ----------
+  const $ = (id) => document.getElementById(id);
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  function fmt(monto) {
+    const c = CURRENCIES[settings.currency] || CURRENCIES.USD;
+    try {
+      return new Intl.NumberFormat(c.locale, { style: "currency", currency: c.code, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monto || 0);
+    } catch (e) {
+      return "$" + (monto || 0).toFixed(2);
+    }
+  }
+
+  function fmtCorto(monto) {
+    const c = CURRENCIES[settings.currency] || CURRENCIES.USD;
+    try {
+      return new Intl.NumberFormat(c.locale, { style: "currency", currency: c.code, notation: "compact", maximumFractionDigits: 1 }).format(monto || 0);
+    } catch (e) {
+      return "$" + (monto || 0).toFixed(0);
+    }
+  }
+
+  function fechaStr(d) {
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+
+  function quincenaDe(f) {
+    const d = new Date(f + "T00:00:00");
+    return { anio: d.getFullYear(), mes: d.getMonth(), quincena: d.getDate() <= 15 ? 1 : 2 };
+  }
+
+  function rangoPeriodo(p) {
+    const inicio = new Date(p.anio, p.mes, p.quincena === 1 ? 1 : 16);
+    const fin = p.quincena === 1 ? new Date(p.anio, p.mes, 15) : new Date(p.anio, p.mes + 1, 0);
+    return { ini: fechaStr(inicio), fin: fechaStr(fin) };
+  }
+
+  function periodoInfo(p) {
+    const nombreMes = new Date(p.anio, p.mes, 1).toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+    const r = rangoPeriodo(p);
+    const diaIni = +r.ini.slice(8, 10);
+    const diaFin = +r.fin.slice(8, 10);
+    return {
+      nombre: p.quincena === 1 ? "1ª quincena" : "2ª quincena",
+      rango: nombreMes + " · " + diaIni + "–" + diaFin
+    };
+  }
+
+  function moverPeriodo(dir) {
+    if (dir > 0) {
+      if (periodo.quincena === 1) periodo.quincena = 2;
+      else { periodo.quincena = 1; periodo.mes++; if (periodo.mes > 11) { periodo.mes = 0; periodo.anio++; } }
+    } else {
+      if (periodo.quincena === 2) periodo.quincena = 1;
+      else { periodo.quincena = 2; periodo.mes--; if (periodo.mes < 0) { periodo.mes = 11; periodo.anio--; } }
+    }
+  }
+
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  // ---------- Persistencia ----------
+  function save() {
+    try {
+      localStorage.setItem("finanzas_transacciones", JSON.stringify(transacciones));
+      localStorage.setItem("finanzas_settings", JSON.stringify(settings));
+    } catch (e) { console.warn("No se pudo guardar", e); }
+  }
+
+  function load() {
+    try {
+      const t = localStorage.getItem("finanzas_transacciones");
+      const s = localStorage.getItem("finanzas_settings");
+      if (t) transacciones = JSON.parse(t);
+      if (s) settings = Object.assign({}, settings, JSON.parse(s));
+    } catch (e) { console.warn("No se pudo cargar", e); }
+    if (!Array.isArray(transacciones)) transacciones = [];
+  }
+
+  // ---------- Filtrado ----------
+  function txnsDelPeriodo() {
+    const r = rangoPeriodo(periodo);
+    return transacciones.filter(t => t.fecha && t.fecha >= r.ini && t.fecha <= r.fin);
+  }
+
+  function aplicarFiltros(lista) {
+    return lista.filter(t => {
+      if (filtro !== "todos" && t.tipo !== filtro) return false;
+      if (busqueda) {
+        const q = busqueda.toLowerCase();
+        if (!(t.descripcion || "").toLowerCase().includes(q) && !(t.categoria || "").toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  // ---------- Render ----------
+  function render() {
+    renderSummary();
+    renderBudget();
+    renderList();
+    renderChart();
+    renderPeriodoLabel();
+  }
+
+  function renderPeriodoLabel() {
+    const info = periodoInfo(periodo);
+    $("periodoNombre").textContent = info.nombre;
+    $("periodoRango").textContent = info.rango;
+  }
+
+  function renderSummary() {
+    const lista = txnsDelPeriodo();
+    let ingresos = 0, gastos = 0;
+    lista.forEach(t => { if (t.tipo === "ingreso") ingresos += +t.monto; else gastos += +t.monto; });
+    const balance = ingresos - gastos;
+
+    $("sumIngresos").textContent = fmt(ingresos);
+    $("sumGastos").textContent = fmt(gastos);
+    $("sumBalance").textContent = fmt(balance);
+
+    const nIng = lista.filter(t => t.tipo === "ingreso").length;
+    const nGas = lista.filter(t => t.tipo === "gasto").length;
+    $("subIngresos").textContent = nIng + " movimiento" + (nIng === 1 ? "" : "s");
+    $("subGastos").textContent = nGas + " movimiento" + (nGas === 1 ? "" : "s");
+    $("subBalance").textContent = balance >= 0 ? "Ahorro positivo 💪" : "Más gastos que ingresos";
+
+    const cb = $("cardBalance");
+    cb.classList.toggle("positivo", balance >= 0);
+    cb.classList.toggle("negativo", balance < 0);
+  }
+
+  function renderBudget() {
+    const lista = txnsDelPeriodo();
+    const gastos = lista.filter(t => t.tipo === "gasto").reduce((s, t) => s + (+t.monto), 0);
+    const budget = +settings.budget || 0;
+    const fill = $("budgetFill");
+
+    if (!budget) {
+      $("budgetCard").classList.add("hidden");
+      return;
+    }
+    $("budgetCard").classList.remove("hidden");
+
+    const pct = Math.min(100, (gastos / budget) * 100);
+    fill.style.width = pct + "%";
+    fill.className = "fill" + (pct >= 100 ? " over" : pct >= 80 ? " warn" : "");
+    $("budgetMeta").textContent = fmt(gastos) + " de " + fmt(budget) + (pct >= 100 ? " · ¡Límite superado!" : "");
+  }
+
+  function renderList() {
+    const cont = $("txnList");
+    let lista = aplicarFiltros(txnsDelPeriodo());
+    lista.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
+
+    if (!lista.length) {
+      cont.innerHTML = '<div class="list-empty">No hay movimientos en esta quincena.</div>';
+      return;
+    }
+
+    cont.innerHTML = lista.map(t => {
+      const emoji = EMOJIS[t.categoria] || "📦";
+      const signo = t.tipo === "ingreso" ? "+" : "−";
+      return `
+        <div class="txn ${t.tipo}">
+          <div class="icon">${emoji}</div>
+          <div class="info">
+            <div class="desc">${escapeHtml(t.descripcion || "Sin descripción")}</div>
+            <div class="meta">${escapeHtml(t.categoria)} · ${formatFecha(t.fecha)}</div>
+          </div>
+          <div class="amount">${signo}${fmt(t.monto)}</div>
+          <div class="actions">
+            <button data-edit="${t.id}" title="Editar">✏️</button>
+            <button data-del="${t.id}" class="del" title="Eliminar">🗑️</button>
+          </div>
+        </div>`;
+    }).join("");
+
+    cont.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => abrirEditar(b.dataset.edit)));
+    cont.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => eliminar(b.dataset.del)));
+  }
+
+  function renderChart() {
+    const area = $("chartArea");
+    const gastos = txnsDelPeriodo().filter(t => t.tipo === "gasto");
+
+    if (!gastos.length) {
+      area.innerHTML = '<div class="empty-note">No hay gastos en esta quincena.<br>Añade un gasto para ver el desglose.</div>';
+      return;
+    }
+
+    const porCat = {};
+    gastos.forEach(t => { porCat[t.categoria] = (porCat[t.categoria] || 0) + (+t.monto); });
+    const total = Object.values(porCat).reduce((a, b) => a + b, 0);
+
+    const datos = Object.entries(porCat).map(([cat, monto]) => ({
+      cat, monto, pct: (monto / total) * 100
+    })).sort((a, b) => b.monto - a.monto);
+
+    // Donut SVG
+    const R = 54, C = 2 * Math.PI * R;
+    let offset = 0;
+    let segs = "";
+    datos.forEach((d, i) => {
+      const len = (d.pct / 100) * C;
+      const color = COLORS[i % COLORS.length];
+      segs += `<circle cx="70" cy="70" r="${R}" fill="none" stroke="${color}" stroke-width="22"
+        stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-offset}" stroke-linecap="butt"></circle>`;
+      offset += len;
+    });
+
+    area.innerHTML = `
+      <div class="chart-wrap">
+        <div class="donut">
+          <svg width="140" height="140" viewBox="0 0 140 140">
+            <circle cx="70" cy="70" r="${R}" fill="none" stroke="var(--surface-2)" stroke-width="22"></circle>
+            ${segs}
+          </svg>
+          <div class="center"><div><div class="t">Total gastos</div><div class="v">${fmtCorto(total)}</div></div></div>
+        </div>
+        <div class="legend">
+          ${datos.map((d, i) => `
+            <div class="legend-item">
+              <span class="dot" style="background:${COLORS[i % COLORS.length]}"></span>
+              <span class="name">${escapeHtml(d.cat)}</span>
+              <span class="amt">${fmt(d.monto)}</span>
+              <span class="pct">${d.pct.toFixed(0)}%</span>
+            </div>`).join("")}
+        </div>
+      </div>`;
+  }
+
+  function formatFecha(f) {
+    if (!f) return "";
+    const d = new Date(f + "T00:00:00");
+    return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  // ---------- Formularios ----------
+  function llenarCategorias(select, tipo) {
+    const cats = CATEGORIAS[tipo] || CATEGORIAS.gasto;
+    select.innerHTML = cats.map(c => `<option value="${c}">${EMOJIS[c] || "📦"} ${c}</option>`).join("");
+  }
+
+  function setTipoSeg(segId, tipo) {
+    const seg = $(segId);
+    seg.querySelectorAll("button").forEach(b => {
+      const active = b.dataset.tipo === tipo;
+      b.classList.toggle("active", active);
+      b.classList.toggle("ingreso", active && tipo === "ingreso");
+      b.classList.toggle("gasto", active && tipo === "gasto");
+    });
+  }
+
+  function resetForm() {
+    $("fDesc").value = "";
+    $("fMonto").value = "";
+    $("fFecha").value = hoyISO();
+    setTipoSeg("typeSeg", tipoSeleccionado);
+    llenarCategorias($("fCat"), tipoSeleccionado);
+  }
+
+  function hoyISO() {
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+
+  $("txnForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const monto = parseFloat($("fMonto").value);
+    if (!monto || monto <= 0) { toast("Introduce un monto válido"); return; }
+    const t = {
+      id: uid(),
+      tipo: tipoSeleccionado,
+      descripcion: $("fDesc").value.trim() || "Sin descripción",
+      monto: Math.round(monto * 100) / 100,
+      categoria: $("fCat").value,
+      fecha: $("fFecha").value
+    };
+    transacciones.push(t);
+    save();
+    // Si la fecha es de otra quincena, saltar a esa quincena
+    const q = quincenaDe(t.fecha);
+    if (q.anio !== periodo.anio || q.mes !== periodo.mes || q.quincena !== periodo.quincena) {
+      periodo = q;
+    }
+    resetForm();
+    render();
+    toast("Movimiento guardado ✓");
+  });
+
+  // Segment tipo (nuevo)
+  $("typeSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-tipo]");
+    if (!b) return;
+    tipoSeleccionado = b.dataset.tipo;
+    setTipoSeg("typeSeg", tipoSeleccionado);
+    llenarCategorias($("fCat"), tipoSeleccionado);
+  });
+
+  // Segment tipo (editar)
+  $("editTypeSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-tipo]");
+    if (!b) return;
+    editTipo = b.dataset.tipo;
+    setTipoSeg("editTypeSeg", editTipo);
+    llenarCategorias($("eCat"), editTipo);
+  });
+
+  // ---------- Editar / Eliminar ----------
+  function abrirEditar(id) {
+    const t = transacciones.find(x => x.id === id);
+    if (!t) return;
+    editId = id;
+    editTipo = t.tipo;
+    $("eDesc").value = t.descripcion || "";
+    $("eMonto").value = t.monto;
+    $("eFecha").value = t.fecha;
+    setTipoSeg("editTypeSeg", editTipo);
+    llenarCategorias($("eCat"), editTipo);
+    $("eCat").value = t.categoria;
+    $("editModal").classList.add("open");
+  }
+
+  $("editForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const t = transacciones.find(x => x.id === editId);
+    if (!t) return;
+    const monto = parseFloat($("eMonto").value);
+    if (!monto || monto <= 0) { toast("Introduce un monto válido"); return; }
+    t.tipo = editTipo;
+    t.descripcion = $("eDesc").value.trim() || "Sin descripción";
+    t.monto = Math.round(monto * 100) / 100;
+    t.categoria = $("eCat").value;
+    t.fecha = $("eFecha").value;
+    save();
+    $("editModal").classList.remove("open");
+    render();
+    toast("Movimiento actualizado ✓");
+  });
+
+  $("btnCancelEdit").addEventListener("click", () => $("editModal").classList.remove("open"));
+  $("editModal").addEventListener("click", (e) => { if (e.target === $("editModal")) $("editModal").classList.remove("open"); });
+
+  function eliminar(id) {
+    const t = transacciones.find(x => x.id === id);
+    if (!t) return;
+    if (!confirm(`¿Eliminar "${t.descripcion}"?`)) return;
+    transacciones = transacciones.filter(x => x.id !== id);
+    save();
+    render();
+    toast("Movimiento eliminado");
+  }
+
+  // ---------- Filtros y búsqueda ----------
+  $("filterSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-filtro]");
+    if (!b) return;
+    filtro = b.dataset.filtro;
+    $("filterSeg").querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b));
+    renderList();
+  });
+
+  $("searchInput").addEventListener("input", (e) => {
+    busqueda = e.target.value.trim();
+    renderList();
+  });
+
+  // ---------- Navegación de quincena ----------
+  $("prevMonth").addEventListener("click", () => { moverPeriodo(-1); render(); });
+  $("nextMonth").addEventListener("click", () => { moverPeriodo(1); render(); });
+  $("btnToday").addEventListener("click", () => { periodo = quincenaDe(hoyISO()); render(); });
+
+  // ---------- Exportar / Importar ----------
+  $("btnExport").addEventListener("click", () => {
+    const data = { version: 1, exportado: new Date().toISOString(), moneda: settings.currency, transacciones };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "finanzas-" + fechaStr(new Date()) + ".json";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast("Datos exportados ✓");
+  });
+
+  $("btnImport").addEventListener("click", () => $("fileInput").click());
+
+  $("fileInput").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        const lista = Array.isArray(data) ? data : data.transacciones;
+        if (!Array.isArray(lista)) throw new Error("Formato inválido");
+        if (lista.length && !confirm(`Se importarán ${lista.length} movimientos. ¿Continuar?`)) return;
+        transacciones = transacciones.concat(lista.map(t => ({ id: t.id || uid(), tipo: t.tipo || "gasto", descripcion: t.descripcion || "Sin descripción", monto: +t.monto || 0, categoria: t.categoria || "Otros", fecha: t.fecha })));
+        save();
+        render();
+        toast("Importación completada ✓");
+      } catch (err) {
+        toast("No se pudo importar el archivo");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  });
+
+  // ---------- Configuración ----------
+  function abrirSettings() {
+    $("setCurrency").value = settings.currency;
+    $("setBudget").value = settings.budget || "";
+    $("settingsModal").classList.add("open");
+  }
+  $("btnSettings").addEventListener("click", abrirSettings);
+  $("btnCloseSettings").addEventListener("click", () => $("settingsModal").classList.remove("open"));
+  $("settingsModal").addEventListener("click", (e) => { if (e.target === $("settingsModal")) $("settingsModal").classList.remove("open"); });
+
+  $("btnSaveSettings").addEventListener("click", () => {
+    settings.currency = $("setCurrency").value;
+    settings.budget = parseFloat($("setBudget").value) || 0;
+    save();
+    $("settingsModal").classList.remove("open");
+    render();
+    toast("Configuración guardada ✓");
+  });
+
+  $("btnClearAll").addEventListener("click", () => {
+    if (!confirm("⚠️ ¿Seguro que quieres borrar TODOS los movimientos? Esta acción no se puede deshacer.")) return;
+    transacciones = [];
+    save();
+    $("settingsModal").classList.remove("open");
+    render();
+    toast("Todos los datos fueron eliminados");
+  });
+
+  // ---------- Tema ----------
+  function aplicarTema() {
+    document.documentElement.setAttribute("data-theme", settings.theme);
+    $("btnTheme").textContent = settings.theme === "dark" ? "☀️" : "🌙";
+  }
+  $("btnTheme").addEventListener("click", () => {
+    settings.theme = settings.theme === "dark" ? "light" : "dark";
+    save();
+    aplicarTema();
+  });
+
+  // ---------- Inicio ----------
+  load();
+  periodo = quincenaDe(hoyISO());
+  aplicarTema();
+  resetForm();
+  render();
+
+  // ---------- Pantalla de carga ----------
+  setTimeout(() => {
+    const s = $("splash");
+    if (s) s.classList.add("hide");
+  }, 1000);
+
+  // ---------- Service Worker (solo PWA, no en la app nativa) ----------
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http") && typeof window.Capacitor === "undefined") {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+})();
+</script>
+</body>
+</html>

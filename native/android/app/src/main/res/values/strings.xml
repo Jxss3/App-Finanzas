@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Finanzas por Quincena</string>
+    <string name="title_activity_main">Finanzas por Quincena</string>
+    <string name="package_name">com.jxss3.finanzas</string>
+    <string name="custom_url_scheme">com.jxss3.finanzas</string>
+</resources>
