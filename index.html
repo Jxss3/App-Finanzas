@@ -53,7 +53,7 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  html, body { max-width: 100%; overflow-x: hidden; }
+  html, body { max-width: 100%; overflow-x: clip; }
 
   body {
     font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
@@ -63,7 +63,6 @@
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
-    overscroll-behavior-y: none;
   }
 
   button, input, select { touch-action: manipulation; }
