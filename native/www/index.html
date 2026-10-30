@@ -138,7 +138,10 @@
   .hero .monto.largo { font-size: 2rem; }
   .hero .monto small { font-size: .56em; font-weight: 600; color: rgba(255, 255, 255, 0.68); letter-spacing: -0.02em; }
   .hero .estado { font-size: 0.82rem; color: rgba(255, 255, 255, 0.86); margin-top: 4px; min-height: 1.2em; }
-  .hero-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; position: relative; z-index: 1; }
+  .hero-saldos { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.16); position: relative; z-index: 1; }
+  .hero-fila { display: flex; justify-content: space-between; gap: 12px; font-size: 0.84rem; padding: 2px 0; color: rgba(255, 255, 255, 0.8); }
+  .hero-fila strong { color: #fff; font-weight: 650; white-space: nowrap; }
+  .hero-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; position: relative; z-index: 1; }
   .hero-col { background: rgba(255, 255, 255, 0.11); border-radius: 14px; padding: 10px 12px; min-width: 0; }
   .hero-col .t { display: flex; align-items: center; gap: 5px; font-size: 0.74rem; color: rgba(255, 255, 255, 0.8); }
   .hero-col .t .ico { width: 14px; height: 14px; stroke-width: 2.2; }
@@ -448,8 +451,12 @@
     <!-- Inicio -->
     <section class="view" data-view="inicio">
       <div class="hero">
-        <div class="etiqueta">Balance de la quincena</div>
-        <div class="monto" id="sumBalance"></div>
+        <div class="etiqueta">Saldo total</div>
+        <div class="monto" id="sumSaldo"></div>
+        <div class="hero-saldos">
+          <div class="hero-fila"><span id="lblAnterior"></span><strong id="sumAnterior"></strong></div>
+          <div class="hero-fila"><span>Esta quincena</span><strong id="sumBalance"></strong></div>
+        </div>
         <div class="estado" id="subBalance"></div>
         <div class="hero-cols">
           <div class="hero-col">
@@ -547,6 +554,11 @@
           <span class="tile-ico"><svg class="ico"><use href="#i-meta"/></svg></span>
           <span class="txt"><span class="t">Presupuesto</span><span class="s">Por quincena. Vacío = sin límite</span></span>
           <input type="number" id="setBudget" inputmode="decimal" min="0" step="0.01" placeholder="0" />
+        </label>
+        <label class="ajuste" for="setSaldoInicial">
+          <span class="tile-ico"><svg class="ico"><use href="#i-moneda"/></svg></span>
+          <span class="txt"><span class="t">Saldo inicial</span><span class="s">Lo que tenías antes de usar la app</span></span>
+          <input type="number" id="setSaldoInicial" inputmode="decimal" step="0.01" placeholder="0" />
         </label>
         <button class="ajuste" id="btnThemeAjuste" role="switch" aria-checked="false">
           <span class="tile-ico"><svg class="ico"><use href="#i-luna"/></svg></span>
@@ -681,7 +693,7 @@
 
   // ---------- Estado ----------
   let transacciones = [];
-  let settings = { currency: "USD", budget: 0, theme: "light" };
+  let settings = { currency: "USD", budget: 0, saldoInicial: 0, theme: "light" };
   let periodo = { anio: 0, mes: 0, quincena: 1 }; // { anio, mes(0-11), quincena(1|2) }
   let vista = "inicio";
   let filtro = "todos";
@@ -690,8 +702,8 @@
   let ultimoTipo = "gasto";
   let overlay = null;
   let alCerrarOverlay = null;
-  let balanceMostrado = 0;
-  let animBalance = 0;
+  let saldoMostrado = 0;
+  let animSaldo = 0;
 
   // ---------- Utilidades ----------
   const $ = (id) => document.getElementById(id);
@@ -836,6 +848,14 @@
     return lista.filter(t => t.tipo === "gasto").reduce((s, t) => s + (+t.monto), 0);
   }
 
+  // Lo acumulado antes de la quincena: saldo inicial más todos los movimientos previos.
+  function saldoAntesDe(p) {
+    const ini = rangoPeriodo(p).ini;
+    return transacciones
+      .filter(t => t.fecha && t.fecha < ini)
+      .reduce((s, t) => s + (t.tipo === "ingreso" ? +t.monto : -t.monto), +settings.saldoInicial || 0);
+  }
+
   function aplicarFiltros(lista) {
     return lista.filter(t => {
       if (filtro !== "todos" && t.tipo !== filtro) return false;
@@ -888,26 +908,30 @@
     $("btnToday").classList.toggle("hidden", mismoPeriodo(periodo, quincenaDe(hoyISO())));
   }
 
-  function pintarBalance(valor) {
+  function pintarSaldo(valor) {
     const p = fmtPartes(valor);
-    const el = $("sumBalance");
+    const el = $("sumSaldo");
     el.innerHTML = escapeHtml(p.entero) + "<small>" + escapeHtml(p.resto) + "</small>";
     el.classList.toggle("largo", (p.entero + p.resto).length > 11);
-    balanceMostrado = valor;
+    saldoMostrado = valor;
   }
 
-  function animarBalance(destino) {
-    cancelAnimationFrame(animBalance);
-    const inicio = balanceMostrado;
-    if (sinAnimacion() || inicio === destino) { pintarBalance(destino); return; }
+  function animarSaldo(destino) {
+    cancelAnimationFrame(animSaldo);
+    const inicio = saldoMostrado;
+    if (sinAnimacion() || inicio === destino) { pintarSaldo(destino); return; }
     const t0 = performance.now();
     const paso = (t) => {
       const k = Math.min(1, (t - t0) / 420);
-      pintarBalance(k < 1 ? inicio + (destino - inicio) * (1 - Math.pow(1 - k, 3)) : destino);
-      if (k < 1) animBalance = requestAnimationFrame(paso);
+      pintarSaldo(k < 1 ? inicio + (destino - inicio) * (1 - Math.pow(1 - k, 3)) : destino);
+      if (k < 1) animSaldo = requestAnimationFrame(paso);
     };
-    pintarBalance(inicio);
-    animBalance = requestAnimationFrame(paso);
+    pintarSaldo(inicio);
+    animSaldo = requestAnimationFrame(paso);
+  }
+
+  function fmtConSigno(monto) {
+    return (monto >= 0 ? "+" : "−") + fmt(Math.abs(monto));
   }
 
   function renderSummary() {
@@ -916,7 +940,11 @@
     lista.forEach(t => { if (t.tipo === "ingreso") ingresos += +t.monto; else gastos += +t.monto; });
     const balance = ingresos - gastos;
 
-    animarBalance(balance);
+    const anterior = saldoAntesDe(periodo);
+    animarSaldo(anterior + balance);
+    $("lblAnterior").textContent = anterior >= 0 ? "Sobrante anterior" : "Faltante anterior";
+    $("sumAnterior").textContent = fmtConSigno(anterior);
+    $("sumBalance").textContent = fmtConSigno(balance);
     [["sumIngresos", ingresos], ["sumGastos", gastos]].forEach(([id, v]) => {
       $(id).textContent = fmt(v);
       $(id).classList.toggle("largo", fmt(v).length > 11);
@@ -1120,6 +1148,7 @@
   function renderAjustes() {
     $("setCurrency").value = settings.currency;
     if (document.activeElement !== $("setBudget")) $("setBudget").value = settings.budget || "";
+    if (document.activeElement !== $("setSaldoInicial")) $("setSaldoInicial").value = settings.saldoInicial || "";
     $("infoDatos").textContent = "Tus datos se guardan solo en este dispositivo · " + transacciones.length +
       (transacciones.length === 1 ? " movimiento" : " movimientos");
     $("infoRespaldo").textContent = settings.ultimoRespaldo
@@ -1394,7 +1423,7 @@
   }
 
   $("btnExport").addEventListener("click", async () => {
-    const data = { version: 1, exportado: new Date().toISOString(), moneda: settings.currency, transacciones };
+    const data = { version: 1, exportado: new Date().toISOString(), moneda: settings.currency, saldoInicial: +settings.saldoInicial || 0, transacciones };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const nombre = "finanzas-" + fechaStr(new Date()) + ".json";
     const archivo = new File([blob], nombre, { type: "application/json" });
@@ -1427,6 +1456,7 @@
         if (!nuevas.length) { toast("Ese respaldo ya está importado"); return; }
         if (!await confirmar("Importar respaldo", `Se agregarán ${nuevas.length} movimientos a los que ya tienes.`, "Importar")) return;
         transacciones = transacciones.concat(nuevas.map(t => ({ id: t.id || uid(), tipo: t.tipo || "gasto", descripcion: t.descripcion || "Sin descripción", monto: +t.monto || 0, categoria: t.categoria || "Otros", fecha: t.fecha })));
+        if (!settings.saldoInicial && data.saldoInicial) settings.saldoInicial = +data.saldoInicial || 0;
         save();
         render();
         toast("Importación completada");
@@ -1449,6 +1479,12 @@
     settings.budget = parseFloat($("setBudget").value) || 0;
     save();
     renderBudget();
+  });
+
+  $("setSaldoInicial").addEventListener("input", () => {
+    settings.saldoInicial = parseFloat($("setSaldoInicial").value) || 0;
+    save();
+    renderSummary();
   });
 
   $("btnClearAll").addEventListener("click", async () => {
