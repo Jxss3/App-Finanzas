@@ -1255,12 +1255,19 @@
   }
   $("fMonto").addEventListener("input", ajustarMonto);
 
+  // Hoy si se está viendo la quincena en curso; si no, el primer día de la que se ve.
+  function fechaPorDefecto() {
+    const hoy = hoyISO();
+    const r = rangoPeriodo(periodo);
+    return hoy >= r.ini && hoy <= r.fin ? hoy : r.ini;
+  }
+
   function abrirNuevo() {
     form = { id: null, tipo: ultimoTipo, categoria: CATEGORIAS[ultimoTipo][0] };
     $("sheetTitulo").textContent = "Nuevo movimiento";
     $("fMonto").value = "";
     $("fDesc").value = "";
-    $("fFecha").value = hoyISO();
+    $("fFecha").value = fechaPorDefecto();
     $("btnEliminar").classList.add("hidden");
     $("fSimbolo").textContent = simboloMoneda();
     pintarTipo();
