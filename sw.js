@@ -1,4 +1,4 @@
-const CACHE = "finanzas-quincena-v4";
+const CACHE = "finanzas-quincena-v5";
 const ASSETS = [
   "./",
   "./index.html",
@@ -11,7 +11,10 @@ const ASSETS = [
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    // "reload" evita guardar copias viejas de la caché HTTP del navegador.
+    caches.open(CACHE)
+      .then((c) => c.addAll(ASSETS.map((url) => new Request(url, { cache: "reload" }))))
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -40,8 +43,8 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Iconos y manifest: caché primero (cambian poco).
+  // Iconos y manifest: red primero, para que el icono y la pantalla de carga no se queden viejos.
   e.respondWith(
-    caches.match(e.request).then((cached) => cached || fetch(e.request))
+    fetch(e.request).catch(() => caches.match(e.request))
   );
 });
